@@ -1,0 +1,17 @@
+{
+  "name": "DemoSLS",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Vicenç García Altés <vgales@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "serverless": "^1.54.0"
+  },
+  "devDependencies": {
+    "serverless-iam-roles-per-function": "^2.0.2",
+    "serverless-pseudo-parameters": "^2.5.0"
+  },
+  "scripts": {
+    "deploy": "serverless deploy --aws-profile serverless-local"
+  }
+}
