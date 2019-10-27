@@ -1,0 +1,64 @@
+service: thara
+
+plugins:
+  - serverless-iam-roles-per-function
+  - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: ${opt:region, self:custom.defaultRegion}
+  stage: ${opt:stage, self:custom.defaultStage}
+
+custom:
+  defaultStage: dev
+  defaultRegion: eu-west-1
+  bucket: ${self:service}-${self:provider.stage}-new-products
+  tableName: ${self:service}-${self:provider.stage}-products
+
+functions:
+  newProducts:
+    handler: src/functions/newProducts.handler
+    events:
+      - s3:
+          bucket: ${self:custom.bucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .skus
+    environment:
+      tableName: ${self:custom.tableName}
+    iamRoleStatements:
+      - Effect: Allow
+        Action: s3:GetObject
+        Resource: arn:aws:s3:::${self:custom.bucket}/*
+      - Effect: Allow
+        Action: dynamodb:BatchWriteItem
+        Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.tableName}
+
+  getProducts:
+    handler: src/functions/getProducts.handler
+    events:
+      - http:
+          path: api/products
+          method: get
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:scan
+        Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.tableName}
+    environment:
+      tableName: ${self:custom.tableName}
+        
+
+resources:
+  Resources:
+    ProductsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: sku
+            AttributeType: N
+        KeySchema:
+          - AttributeName: sku
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
